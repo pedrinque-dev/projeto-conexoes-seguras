@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conexões Seguras</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <nav>
+    <div class="nav-id">CS<span style="opacity:.3">/</span>2026<span style="opacity:.3">/</span>P1</div>
+    <div class="nav-links">
+      <a href="#modulos">módulos</a>
+      <a href="#compare">análise</a>
+      <a href="#repo">repositório</a>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-left">
+      <div class="hero-eyebrow">SENAI Felix Guisard &nbsp;·&nbsp; ADS &nbsp;·&nbsp; Parte 1 / 3</div>
+      <div class="hero-title">
+        <div>CONE<span class="slash">/</span></div>
+        <div>XÕES</div>
+        <div>SEGU<span class="slash">/</span></div>
+        <div>RAS</div>
+      </div>
+      <div class="hero-bottom">
+        <a href="#modulos" class="btn btn-fill">Ver documentação</a>
+        <a href="https://github.com/pedrinque-dev/projeto-conexoes-seguras.git" target="_blank" class="btn">GitHub ↗</a>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="hero-stat">
+        <div class="stat-n">03<span class="unit"> mód</span></div>
+        <div class="stat-desc">Sniffing · TLS · Sessão<br>Implementação prática com PoC para cada módulo</div>
+      </div>
+      <div class="hero-stat">
+        <div class="stat-n">15<span class="unit">+ ev</span></div>
+        <div class="stat-desc">Evidências capturadas com Wireshark, prints e arquivos .pcapng</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="label-row">
+    <span>implementação prática</span>
+    <div class="line"></div>
+    <span>poc / prova de conceito</span>
+  </div>
+
+  <div class="modules" id="modulos">
+
+    <div class="module">
+      <div class="module-num"><span>mod-01</span></div>
+      <div class="module-info">
+        <span class="module-tag">Camada 2 / 3</span>
+        <div class="module-name">Sniffing e<br>Interceptação</div>
+        <div class="module-desc">Captura passiva de pacotes com NIC em modo promíscuo. O driver descarta o filtro de MAC
+          e repassa todos os frames ao sistema operacional, tornando visível tráfego de terceiros na mesma rede.</div>
+        <div class="module-tool-badge">Wireshark 4.6.6 + Npcap &nbsp;·&nbsp; Windows 10</div>
+      </div>
+      <div class="module-result">
+        <div class="result-label">Pacote capturado</div>
+        <div class="result-code">
+          <span class="c"># filtro: http — neverssl.com</span>
+          GET /online <span class="hi">HTTP/1.1</span>
+          Host: neverssl.com
+          User-Agent: <span class="hi">Mozilla/5.0 (Windows NT 10.0)</span>
+          Accept-Language: <span class="hi">pt-BR</span>
+          Referer: <span class="hi">http://neverssl.com/</span>
+        </div>
+        <div class="finding">
+          <div class="finding-dot dot-red"></div>
+          <div class="finding-text">Headers completos em texto claro — User-Agent, idioma, URL e Referer expostos sem
+            qualquer criptografia</div>
+        </div>
+        <div class="finding">
+          <div class="finding-dot dot-red"></div>
+          <div class="finding-text">Consultas DNS também legíveis: google.com, discordapp.com, microsoft.com</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="module">
+      <div class="module-num"><span>mod-02</span></div>
+      <div class="module-info">
+        <span class="module-tag">TLS / Handshake</span>
+        <div class="module-name">Criptografia e<br>Handshake TLS</div>
+        <div class="module-desc">Servidor HTTPS local com certificado autoassinado. Criptografia híbrida: RSA/ECC para
+          troca de chaves, AES-256-GCM para o tráfego. ECDHE garante Perfect Forward Secrecy.</div>
+        <div class="module-tool-badge">Python 3 + trustme &nbsp;·&nbsp; Wireshark Loopback</div>
+      </div>
+      <div class="module-result">
+        <div class="result-label">Handshake TLS 1.3</div>
+        <div class="result-code">
+          <span class="c"># filtro: tls — 127.0.0.1:4443</span>
+          <span class="ok">Client Hello</span> SNI=localhost
+          <span class="ok">Server Hello</span> TLS 1.3 selecionado
+          <span class="ok">Change Cipher Spec</span>
+          <span class="hi">Application Data</span> <span class="c">← cifrado</span>
+          <span class="hi">Application Data</span> <span class="c">← cifrado</span>
+        </div>
+        <div class="finding">
+          <div class="finding-dot dot-green"></div>
+          <div class="finding-text">Application Data completamente ilegível — contraste direto com o Módulo 1</div>
+        </div>
+        <div class="finding">
+          <div class="finding-dot dot-red"></div>
+          <div class="finding-text">NET::ERR_CERT_AUTHORITY_INVALID — certificado autoassinado não reconhecido por CA
+            pública</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="module">
+      <div class="module-num"><span>mod-03</span></div>
+      <div class="module-info">
+        <span class="module-tag">Camada de Aplicação</span>
+        <div class="module-name">Gestão de Sessão<br>e Cookies</div>
+        <div class="module-desc">Aplicação Flask com autenticação por sessão. Demonstra a exposição do SessionID em HTTP
+          puro e as consequências da ausência das flags Secure e SameSite.</div>
+        <div class="module-tool-badge">Python 3 + Flask &nbsp;·&nbsp; Wireshark Loopback</div>
+      </div>
+      <div class="module-result">
+        <div class="result-label">Cookie capturado</div>
+        <div class="result-code">
+          <span class="c"># filtro: http — POST /login</span>
+          Set-Cookie: <span class="bad">session=eyJlc3VhcmlvIjoiUGVkcm8ifQ...</span>
+          HttpOnly; <span class="c">Path=/</span>
+
+          <span class="c"># flags ausentes:</span>
+          <span class="bad">Secure</span> <span class="c">← envia em HTTP sem criptografia</span>
+          <span class="bad">SameSite</span> <span class="c">← vulnerável a CSRF</span>
+        </div>
+        <div class="finding">
+          <div class="finding-dot dot-red"></div>
+          <div class="finding-text">SessionID visível na rede — vulnerável a Session Hijacking sem HTTPS</div>
+        </div>
+        <div class="finding">
+          <div class="finding-dot dot-green"></div>
+          <div class="finding-text">HttpOnly presente — proteção contra leitura via JavaScript (XSS)</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="label-row">
+    <span>análise comparativa</span>
+    <div class="line"></div>
+    <span>http vs https</span>
+  </div>
+
+  <div class="compare-grid" id="compare">
+    <div class="compare-col">
+      <div class="compare-proto http">HTTP</div>
+      <div class="compare-sub">Sem criptografia &nbsp;·&nbsp; Porta 80</div>
+      <div class="compare-row"><span class="key">Pacotes no Wireshark</span><span class="val val-bad">texto claro</span>
+      </div>
+      <div class="compare-row"><span class="key">Cookie de sessão</span><span class="val val-bad">exposto</span></div>
+      <div class="compare-row"><span class="key">User-Agent / SO</span><span class="val val-bad">visível</span></div>
+      <div class="compare-row"><span class="key">URLs acessadas</span><span class="val val-bad">visíveis</span></div>
+      <div class="compare-row"><span class="key">Risco principal</span><span class="val val-bad">session
+          hijacking</span></div>
+    </div>
+    <div class="compare-col">
+      <div class="compare-proto https">HTTPS</div>
+      <div class="compare-sub">TLS 1.3 · AES-256-GCM &nbsp;·&nbsp; Porta 443</div>
+      <div class="compare-row"><span class="key">Pacotes no Wireshark</span><span class="val val-ok">cifrado</span>
+      </div>
+      <div class="compare-row"><span class="key">Cookie de sessão</span><span class="val val-ok">protegido</span></div>
+      <div class="compare-row"><span class="key">User-Agent / SO</span><span class="val val-ok">oculto</span></div>
+      <div class="compare-row"><span class="key">URLs acessadas</span><span class="val val-ok">ocultas</span></div>
+      <div class="compare-row"><span class="key">Atenção</span><span class="val" style="opacity:.5">certificado
+          válido</span></div>
+    </div>
+  </div>
+
+  <div class="label-row">
+    <span>estrutura do repositório</span>
+    <div class="line"></div>
+    <span>github</span>
+  </div>
+
+  <div class="repo-section" id="repo">
+    <div class="repo-left">
+      <div class="section-heading">Repositório</div>
+      <div class="section-sub">Organização dos arquivos seguindo a estrutura exigida. Cada módulo contém README,
+        código-fonte e evidências.</div>
+      <div class="tree">
+        <span class="d">projeto-conexoes-seguras/</span>
+        │
+        ├── <span class="d">modulo1-sniffing/</span>
+        │ ├── <span class="h">README.md</span>
+        │ └── <span class="f">evidencias/</span>
+        │
+        ├── <span class="d">modulo2-tls/</span>
+        │ ├── <span class="f">servidor.py</span>
+        │ ├── <span class="h">README.md</span>
+        │ └── <span class="f">evidencias/</span>
+        │
+        ├── <span class="d">modulo3-sessao/</span>
+        │ ├── <span class="f">app.py</span>
+        │ ├── <span class="h">README.md</span>
+        │ └── <span class="f">evidencias/</span>
+        │
+        ├── <span class="f">evidencias/</span>
+        ├── <span class="h">relatorio.pdf</span>
+        └── <span class="h">README.md</span>
+      </div>
+      <a href="https://github.com/pedrinque-dev/projeto-conexoes-seguras.git" target="_blank" class="btn">Ver no GitHub ↗</a>
+    </div>
+    <div class="repo-right">
+      <div>
+        <div class="section-heading">Entregas</div>
+        <div class="section-sub">Checklist das entregas obrigatórias da Parte 1/3.</div>
+      </div>
+      <div class="checklist">
+        <div class="check-item">
+          <div class="check-box done">✓</div>
+          <div>
+            <div class="check-label">Relatório Técnico</div>
+            <div class="check-sub">relatorio.pdf · máx. 5 páginas</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-box done">✓</div>
+          <div>
+            <div class="check-label">PoC — Módulo 1 (Sniffing)</div>
+            <div class="check-sub">Wireshark + capturas .pcapng</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-box done">✓</div>
+          <div>
+            <div class="check-label">PoC — Módulo 2 (TLS)</div>
+            <div class="check-sub">Python + trustme + handshake capturado</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-box done">✓</div>
+          <div>
+            <div class="check-label">PoC — Módulo 3 (Sessão)</div>
+            <div class="check-sub">Flask + cookie capturado em HTTP</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-box done">✓</div>
+          <div>
+            <div class="check-label">GitHub Pages</div>
+            <div class="check-sub">este site</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-col">
+      <div class="footer-label">Projeto</div>
+      <div class="footer-val">Conexões Seguras<br>Parte 1 de 3</div>
+    </div>
+    <div class="footer-col">
+      <div class="footer-label">Instituição</div>
+      <div class="footer-val">SENAI Felix Guisard<br>ADS — Análise e Desenvolvimento de Sistemas</div>
+    </div>
+    <div class="footer-col">
+      <div class="footer-label">Ano</div>
+      <div class="footer-val">2026</div>
+    </div>
+  </footer>
+
+</body>
+
+</html>
